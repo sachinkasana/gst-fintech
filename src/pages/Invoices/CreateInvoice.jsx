@@ -11,6 +11,7 @@ import Card from '../../components/common/Card';
 import { invoiceAPI } from '../../api/invoice.api';
 import { businessAPI } from '../../api/business.api';
 import { formatDateInput } from '../../utils/formatters';
+import { INVOICE_TEMPLATES } from '../../utils/constants';
 import toast from 'react-hot-toast';
 
 const CreateInvoice = () => {
@@ -18,6 +19,7 @@ const CreateInvoice = () => {
   const [loading, setLoading] = useState(false);
   const [business, setBusiness] = useState(null);
   const [invoiceType, setInvoiceType] = useState('B2B'); // B2B or B2C
+  const [templateOptions, setTemplateOptions] = useState(INVOICE_TEMPLATES);
   const [formData, setFormData] = useState({
     customer: null,
     items: [{
@@ -30,21 +32,38 @@ const CreateInvoice = () => {
       gstRate: 18,
       discount: 0
     }],
+    invoiceDate: formatDateInput(new Date()),
     dueDate: '',
-    notes: ''
+    notes: '',
+    invoiceTemplate: INVOICE_TEMPLATES[0].value
   });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     fetchBusiness();
+    fetchTemplates();
   }, []);
 
   const fetchBusiness = async () => {
     try {
       const response = await businessAPI.get();
       setBusiness(response.data);
+      setFormData((prev) => ({
+        ...prev,
+        invoiceTemplate: response.data.defaultInvoiceTemplate || prev.invoiceTemplate
+      }));
     } catch (error) {
       console.error('Error fetching business:', error);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await invoiceAPI.getTemplates();
+      setTemplateOptions(response.data || INVOICE_TEMPLATES);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      setTemplateOptions(INVOICE_TEMPLATES);
     }
   };
 
@@ -160,8 +179,10 @@ const CreateInvoice = () => {
           gstRate: parseInt(item.gstRate),
           discount: parseFloat(item.discount) || 0
         })),
+        invoiceDate: formData.invoiceDate || formatDateInput(new Date()),
         dueDate: formData.dueDate || null,
         notes: formData.notes || '',
+        invoiceTemplate: formData.invoiceTemplate,
         isDraft
       };
 
@@ -273,6 +294,13 @@ const CreateInvoice = () => {
           <Card title="Additional Details">
             <div className="space-y-4">
               <Input
+                label="Bill Date"
+                type="date"
+                value={formData.invoiceDate}
+                onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })}
+              />
+
+              <Input
                 label="Due Date (Optional)"
                 type="date"
                 value={formData.dueDate}
@@ -292,6 +320,17 @@ const CreateInvoice = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
+
+              <Select
+                label="Invoice Template"
+                value={formData.invoiceTemplate}
+                onChange={(e) => setFormData({ ...formData, invoiceTemplate: e.target.value })}
+                options={templateOptions.map((option) => ({
+                  value: option.value || option.id || option,
+                  label: option.label || option.name || option.value || option
+                }))}
+                required
+              />
             </div>
           </Card>
         </div>

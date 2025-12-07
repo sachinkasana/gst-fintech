@@ -9,7 +9,7 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import { invoiceAPI } from '../../api/invoice.api';
 import { paymentAPI } from '../../api/payment.api';
-import { PAYMENT_MODES } from '../../utils/constants';
+import { PAYMENT_MODES, INVOICE_TEMPLATES } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -19,6 +19,11 @@ const InvoiceDetails = () => {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [templateOptions, setTemplateOptions] = useState(INVOICE_TEMPLATES);
+  const [selectedTemplate, setSelectedTemplate] = useState(INVOICE_TEMPLATES[0].value);
+  const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
   const [paymentData, setPaymentData] = useState({
     amount: '',
     paymentMode: 'CASH',
@@ -29,18 +34,30 @@ const InvoiceDetails = () => {
 
   useEffect(() => {
     fetchInvoice();
+    fetchTemplates();
   }, [id]);
 
   const fetchInvoice = async () => {
     try {
       const response = await invoiceAPI.getById(id);
       setInvoice(response.data);
+      setSelectedTemplate(response.data.invoiceTemplate || INVOICE_TEMPLATES[0].value);
       setPaymentData({ ...paymentData, amount: response.data.amountDue });
     } catch (error) {
       console.error('Error fetching invoice:', error);
       navigate('/invoices');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await invoiceAPI.getTemplates();
+      setTemplateOptions(response.data || INVOICE_TEMPLATES);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      setTemplateOptions(INVOICE_TEMPLATES);
     }
   };
 
@@ -73,9 +90,87 @@ const InvoiceDetails = () => {
     }
   };
 
-  const handleShare = () => {
-    // Implement share functionality (WhatsApp/Email)
-    toast.success('Share functionality will be implemented');
+  const fetchInvoicePdf = async () => {
+    const blob = await invoiceAPI.downloadPdf(invoice._id);
+    return new File([blob], `${invoice.invoiceNumber}.pdf`, {
+      type: 'application/pdf',
+    });
+  };
+
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      const pdfFile = await fetchInvoicePdf();
+      const url = window.URL.createObjectURL(pdfFile);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = pdfFile.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Invoice PDF downloaded');
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      toast.error('Unable to download invoice PDF');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      setIsSharing(true);
+      const pdfFile = await fetchInvoicePdf();
+
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        await navigator.share({
+          title: `Invoice ${invoice.invoiceNumber}`,
+          text: 'Please find the invoice PDF attached.',
+          files: [pdfFile],
+        });
+        toast.success('Invoice shared');
+        return;
+      }
+
+      if (navigator.share) {
+        await navigator.share({
+          title: `Invoice ${invoice.invoiceNumber}`,
+          text: 'Invoice details',
+          url: window.location.href,
+        });
+        toast.success('Invoice link shared');
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Invoice link copied to clipboard');
+        return;
+      }
+
+      toast.error('Sharing is not supported on this device');
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error sharing invoice:', error);
+        toast.error('Unable to share invoice');
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleTemplateUpdate = async () => {
+    try {
+      setIsUpdatingTemplate(true);
+      await invoiceAPI.update(invoice._id, { invoiceTemplate: selectedTemplate });
+      toast.success('Invoice template updated');
+      fetchInvoice();
+    } catch (error) {
+      console.error('Error updating template:', error);
+    } finally {
+      setIsUpdatingTemplate(false);
+    }
   };
 
   if (loading) {
@@ -120,11 +215,23 @@ const InvoiceDetails = () => {
 
       {/* Actions */}
       <div className="flex flex-wrap gap-3">
-        <Button variant="outline" onClick={handleShare} className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={handleShare}
+          loading={isSharing}
+          disabled={isDownloading}
+          className="flex items-center gap-2"
+        >
           <Share2 size={18} />
           Share
         </Button>
-        <Button variant="outline" className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={handleDownload}
+          loading={isDownloading}
+          disabled={isSharing}
+          className="flex items-center gap-2"
+        >
           <Download size={18} />
           Download PDF
         </Button>
@@ -141,6 +248,32 @@ const InvoiceDetails = () => {
           </>
         )}
       </div>
+
+      <Card title="Invoice Template">
+        <div className="flex flex-col md:flex-row md:items-end gap-3">
+          <Select
+            label="Choose Template"
+            value={selectedTemplate}
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            options={templateOptions.map((option) => ({
+              value: option.value || option.id || option,
+              label: option.label || option.name || option.value || option
+            }))}
+          />
+          <div className="flex gap-2">
+            <Button
+              onClick={handleTemplateUpdate}
+              loading={isUpdatingTemplate}
+              disabled={isDownloading || isSharing}
+            >
+              Apply Template
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-textSecondary mt-2">
+          Template is used for PDF download and share. Change it to regenerate with a different style.
+        </p>
+      </Card>
 
       {/* Customer Details */}
       <Card title="Customer Details">

@@ -7,7 +7,7 @@ import Card from '../../components/common/Card';
 import Loader from '../../components/common/Loader';
 import { businessAPI } from '../../api/business.api';
 import { authAPI } from '../../api/auth.api';
-import { INDIAN_STATES } from '../../utils/constants';
+import { INDIAN_STATES, INVOICE_TEMPLATES } from '../../utils/constants';
 import { validateGSTIN } from '../../utils/validators';
 import toast from 'react-hot-toast';
 
@@ -26,6 +26,7 @@ const SettingsPage = () => {
     phone: '',
     invoicePrefix: '',
     termsConditions: '',
+    defaultInvoiceTemplate: 'classic',
     bankDetails: {
       accountName: '',
       accountNumber: '',
@@ -309,6 +310,13 @@ const SettingsPage = () => {
                 onChange={(e) => setBusinessData({ ...businessData, invoicePrefix: e.target.value })}
                 placeholder="INV"
                 helperText="This will be used as prefix for invoice numbers (e.g., INV-2025-0001)"
+              />
+              <Select
+                label="Default Invoice Template"
+                value={businessData.defaultInvoiceTemplate || 'classic'}
+                onChange={(e) => setBusinessData({ ...businessData, defaultInvoiceTemplate: e.target.value })}
+                options={INVOICE_TEMPLATES}
+                required
               />
               <div>
                 <label className="block text-sm font-medium text-textPrimary mb-1">

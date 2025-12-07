@@ -16,6 +16,11 @@ export const PAYMENT_STATUS = {
   PAID: 'paid'
 };
 
+export const INVOICE_TEMPLATES = [
+  { value: 'classic', label: 'Classic' },
+  { value: 'modern', label: 'Modern' }
+];
+
 export const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
   'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
