@@ -17,8 +17,7 @@ export const PAYMENT_STATUS = {
 };
 
 export const INVOICE_TEMPLATES = [
-  { value: 'classic', label: 'Classic' },
-  { value: 'modern', label: 'Modern' }
+  { value: 'gst', label: 'GST Standard' }
 ];
 
 export const INDIAN_STATES = [

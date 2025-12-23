@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Share2, Trash2, DollarSign } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Trash2, IndianRupee } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
@@ -238,7 +238,7 @@ const InvoiceDetails = () => {
         {invoice.paymentStatus !== 'paid' && (
           <>
             <Button onClick={() => setShowPaymentModal(true)} className="flex items-center gap-2">
-              <DollarSign size={18} />
+              <IndianRupee size={18} />
               Record Payment
             </Button>
             <Button variant="danger" onClick={handleDelete} className="flex items-center gap-2">

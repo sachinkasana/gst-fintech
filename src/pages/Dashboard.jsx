@@ -6,7 +6,7 @@ import RecentInvoices from '../components/dashboard/RecentInvoices';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, DollarSign, FileText, Clock, TrendingUp } from 'lucide-react';
+import { Plus, IndianRupee, FileText, Clock, TrendingUp } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ const Dashboard = () => {
           title="Today's Sales"
           value={formatCurrency(stats?.today?.sales || 0)}
           subtitle={`${stats?.today?.count || 0} invoices`}
-          icon={DollarSign}
+          icon={IndianRupee}
           color="success"
         />
         <StatsCard
